@@ -2,22 +2,267 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Document</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/@mdi/font@4.x/css/materialdesignicons.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css"
+      rel="stylesheet"
+    />
+    <title>Lista de Contatos</title>
     <style></style>
   </head>
   <body>
     <div id="app">
       <v-app>
         <v-app-bar>
-          <span class="">Lista de Contatos</span>
+          <span class="align-content-space-around">Lista de Contatos</span>
           <v-spacer></v-spacer>
         </v-app-bar>
+
+        <v-main>
+          <v-container>
+            <div v-if="users.length == 0">
+              <h1 class="text-center mt-5 text--lighten-1">
+                Ops... Sua Lista de lista de contatos está vazia!
+              </h1>
+              <p class="text-center mt-4">Adicione seus contatos aqui!</p>
+            </div>
+
+            <v-data-table
+              :headers="headers"
+              :items="users"
+              item-class="color"
+              class="elevation-1"
+              v-else
+              :footer-props="{ 'items-per-page-text':'Contatos por página'}"
+            >
+              <template v-slot:[`item.actions`]="{ item }">
+                <div :style="item.color"></div>
+              </template>
+            </v-data-table>
+            <v-row
+              class="py-5 d-flex justify-content-center"
+              style="justify-content: center"
+            >
+              <v-dialog v-model="addNewUser" persistent max-width="500px">
+                <template v-slot:activator="{ on, attrs }">
+                  <v-btn
+                    color="success"
+                    dark
+                    v-bind="attrs"
+                    v-on="on"
+                    class="btn-primary"
+                  >
+                    Adicionar Contato +
+                  </v-btn>
+                </template>
+                <v-card>
+                  <v-card-title
+                    class="d-flex justify-content-center align-center"
+                  >
+                    <span class="text-center">Informações do contato</span>
+                  </v-card-title>
+                  <v-card-text>
+                    <v-container>
+                      <v-row>
+                        <v-col cols="12" sm="12" md="8">
+                          <v-text-field
+                            label="Informe o Nome Completo"
+                            required
+                            v-model.trim="user.name"
+                            :append-icon="$v.user.name.$error ?? $v.user.name.minLength ? 'mdi-close' :''"
+                          >
+                          </v-text-field>
+                          <p
+                            class="red--text"
+                            v-if="$v.user.name.$error  && !$v.user.name.required "
+                          >
+                            Campo obrigatório. Por favor preencha.*
+                          </p>
+
+                          <p
+                            class="red--text"
+                            v-if="this.nome_completo.length == 1"
+                          >
+                            Campo obrigatório. Por favor preencha.*
+                          </p>
+                          <p
+                            class="red--text"
+                            v-if=" msgName || !$v.user.name.minLength"
+                          >
+                            O Nome e o Sobrenome devem possuir pelo menos 3
+                            letras *
+                          </p>
+                        </v-col>
+                        <v-col cols="12" sm="12" md="4">
+                          <v-text-field
+                            label="Informe o Número de telefone"
+                            v-model="user.numero_telefone"
+                            v-mask="'(##)# ####-####'"
+                            :append-icon="$v.user.numero_telefone.$error ?? $v.user.name.minLength ? 'mdi-close' :''"
+                            @keyup.enter="save()"
+                          >
+                          </v-text-field>
+                          <p
+                            class="red--text"
+                            v-if="$v.user.numero_telefone.$error && !$v.user.numero_telefone.required "
+                          >
+                            Esse campo é obrigatório *
+                          </p>
+
+                          <p
+                            class="red--text"
+                            v-if="$v.user.numero_telefone.required && !$v.user.numero_telefone.minLength"
+                          >
+                            Por favor digite um número válido *
+                          </p>
+                        </v-col>
+                      </v-row>
+                    </v-container>
+                  </v-card-text>
+                  <v-card-actions>
+                    <v-btn color="red darken-1" text @click="cancelar()">
+                      cancelar
+                    </v-btn>
+                    <v-spacer></v-spacer>
+                    <v-btn color="blue darken-1" text @click="save()">
+                      Salvar
+                    </v-btn>
+                  </v-card-actions>
+                </v-card>
+              </v-dialog>
+            </v-row>
+          </v-container>
+        </v-main>
       </v-app>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/vue@next"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const Swal = SweetAlert;
+        Vue.use(VueMask.VueMaskPlugin);
+        Vue.use(window.vuelidate.default);
+        const { required, minLength } = window.validators;
+        new Vue({
+          el: "#app",
+          data() {
+            return {
+              users: [],
+              user: {},
+              primeiro_nome: "",
+              ultimo_nome: "",
+              nome_completo: [],
+              addNewUser: false,
+              msgName: false,
+              headers: [
+                { text: "Nome", align: "start", sortable: true, value: "name" },
+                {
+                  text: "Número de telefone",
+                  value: "numero_telefone",
+                  sortable: false,
+                },
+                { text: "", value: "actions", sortable: false },
+              ],
+            };
+          },
+          validations: {
+            user: {
+              name: {
+                required,
+                minLength: minLength(3),
+              },
+              numero_telefone: {
+                required,
+                minLength: minLength(15),
+              },
+            },
+          },
+          methods: {
+            save() {
+              let idNewUser = 1;
+              if (this.users.length != 0) {
+                let length = this.users.length - 1;
+                idNewUser = this.users[length].id + 1;
+              }
+              this.$v.$touch(); //validação dos campos
+              if (!this.$v.user.$error) {
+                this.array_nome_completo = this.user.name.split(" ");
+                this.nome_completo = this.array_nome_completo.filter(String); //tratando os espaços em branco entre os nomes
+                if (this.nome_completo.length != 1) {
+                  this.primeiro_nome = this.nome_completo[0];
+                  this.ultimo_nome = this.nome_completo[1];
+
+                  if (
+                    this.primeiro_nome.length <= 2 ||
+                    this.ultimo_nome.length <= 2
+                  ) {
+                    this.msgName = true;
+                    return;
+                  }
+                  this.nome_completo = [];
+                  this.users.push({ id: idNewUser, ...this.user });
+                  Swal.fire({
+                    title: "Concluído!",
+                    text: "O Contato foi adicionado com sucesso!",
+                    icon: "success",
+                  });
+                  this.cancelar();
+                  this.user = {};
+                  this.$v.$reset();
+                }
+              }
+              this.setColor();
+              this.setItemLocalStorage();
+            },
+            cancelar() {
+              this.msgName = false;
+              this.addNewUser = false;
+              this.$v.$reset();
+              this.user = {};
+            },
+            setColor() {
+              this.users.map((user) => {
+                const DDD = String(user.numero_telefone).substr(1, 2);
+                return DDD == 11
+                  ? (user.color = "light-blue")
+                  : (user.color = "white");
+              });
+            },
+            setItemLocalStorage() {
+              return localStorage.setItem(
+                "Usuarios",
+                JSON.stringify(this.users)
+              );
+            },
+            getItemLocalStorage() {
+              return JSON.parse(localStorage.getItem("Usuarios"));
+            },
+          },
+          created: function () {
+            this.usuarios = this.getItemLocalStorage();
+            this.users = !!this.usuarios ? this.usuarios : [];
+            this.setColor();
+          },
+          vuetify: new Vuetify(),
+        });
+      });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/v-mask/dist/v-mask.min.js"></script>
+    <script src="https://unpkg.com/vuelidate/dist/validators.min.js"></script>
+    <script src="https://unpkg.com/vuelidate/dist/vuelidate.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@9"></script>
   </body>
 </html>
