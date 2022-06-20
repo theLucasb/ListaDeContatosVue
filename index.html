@@ -24,8 +24,8 @@
   <body>
     <div id="app">
       <v-app>
-        <v-app-bar>
-          <span class="align-content-space-around">Lista de Contatos</span>
+        <v-app-bar app dense>
+          <span>Lista de Contatos</span>
           <v-spacer></v-spacer>
         </v-app-bar>
 
@@ -42,14 +42,19 @@
               :headers="headers"
               :items="users"
               item-class="color"
-              class="elevation-1"
+              class="elevation-2"
               v-else
               :footer-props="{ 'items-per-page-text':'Contatos por página'}"
             >
               <template v-slot:[`item.actions`]="{ item }">
-                <div :style="item.color"></div>
+                <div :style="item.color">
+                  <v-icon class="mr-2" color="orange" @click="editUser(item)"
+                    >mdi-pencil</v-icon
+                  >
+                </div>
               </template>
             </v-data-table>
+
             <v-row
               class="py-5 d-flex justify-content-center"
               style="justify-content: center"
@@ -63,7 +68,7 @@
                     v-on="on"
                     class="btn-primary"
                   >
-                    Adicionar Contato +
+                    Adicionar Novo Contato +
                   </v-btn>
                 </template>
                 <v-card>
@@ -104,13 +109,13 @@
                             letras *
                           </p>
                         </v-col>
-                        <v-col cols="12" sm="12" md="4">
+                        <v-col cols="12" sm="12" md="8">
                           <v-text-field
                             label="Informe o Número de telefone"
                             v-model="user.numero_telefone"
                             v-mask="'(##)# ####-####'"
                             :append-icon="$v.user.numero_telefone.$error ?? $v.user.name.minLength ? 'mdi-close' :''"
-                            @keyup.enter="save()"
+                            @keyup.enter="salvar()"
                           >
                           </v-text-field>
                           <p
@@ -135,13 +140,90 @@
                       cancelar
                     </v-btn>
                     <v-spacer></v-spacer>
-                    <v-btn color="blue darken-1" text @click="save()">
+                    <v-btn color="blue darken-1" text @click="salvar()">
                       Salvar
                     </v-btn>
                   </v-card-actions>
                 </v-card>
               </v-dialog>
             </v-row>
+
+            <v-dialog
+              v-model="editUserD"
+              persistent
+              max-width="600px"
+              :retain-focus="false"
+            >
+              <v-card>
+                <v-card-title
+                  class="d-flex justify-content-center align-center"
+                >
+                  <span class="text-center">Edição de contato</span>
+                </v-card-title>
+                <v-card-text>
+                  <v-container>
+                    <v-row>
+                      <v-col cols="12" sm="12" md="8">
+                        <v-text-field
+                          label="Nome completo"
+                          required
+                          v-model.trim="EditUser.name"
+                        >
+                        </v-text-field>
+                        <p class="red--text" v-if="!$v.EditUser.name.required ">
+                          Esse campo é obrigatório *
+                        </p>
+
+                        <p
+                          class="red--text"
+                          v-if="this.nome_completo.length == 1"
+                        >
+                          Digite o Nome e Sobrenome *
+                        </p>
+
+                        <p class="red--text" v-if="msgName">
+                          Nome e Sobrenome devem possuir 3 letras *
+                        </p>
+                      </v-col>
+                      <v-col cols="12" sm="12 " md="4">
+                        <v-text-field
+                          label="Número de telefone"
+                          v-model="EditUser.numero_telefone"
+                          v-mask="'(##)# ####-####'"
+                        >
+                        </v-text-field>
+                        <p
+                          class="red--text"
+                          v-if="!$v.EditUser.numero_telefone.required "
+                        >
+                          Esse campo é obrigatório *
+                        </p>
+
+                        <p
+                          class="red--text"
+                          v-if="$v.EditUser.numero_telefone.required && !$v.EditUser.numero_telefone.minLength"
+                        >
+                          Por favor digite um número válido *
+                        </p>
+                      </v-col>
+                    </v-row>
+                  </v-container>
+                </v-card-text>
+                <v-card-actions>
+                  <v-spacer></v-spacer>
+                  <v-btn color="blue darken-1" text @click="cancelar()">
+                    Cancelar
+                  </v-btn>
+                  <v-btn
+                    color="blue darken-1"
+                    text
+                    @click="salvarEdit(EditUser)"
+                  >
+                    Salvar
+                  </v-btn>
+                </v-card-actions>
+              </v-card>
+            </v-dialog>
           </v-container>
         </v-main>
       </v-app>
@@ -164,6 +246,9 @@
               nome_completo: [],
               addNewUser: false,
               msgName: false,
+              EditUser: {},
+              editUserD: false,
+
               headers: [
                 { text: "Nome", align: "start", sortable: true, value: "name" },
                 {
@@ -186,9 +271,19 @@
                 minLength: minLength(15),
               },
             },
+            EditUser: {
+              name: {
+                required,
+                minLength: minLength(3),
+              },
+              numero_telefone: {
+                required,
+                minLength: minLength(15),
+              },
+            },
           },
           methods: {
-            save() {
+            salvar() {
               let idNewUser = 1;
               if (this.users.length != 0) {
                 let length = this.users.length - 1;
@@ -224,6 +319,51 @@
               this.setColor();
               this.setItemLocalStorage();
             },
+            editUser(user) {
+              user.name = user.name
+                .split(" ")
+                .filter((partOfName) => partOfName != "")
+                .join(" "); //remover espacos em branco entre os nomes
+              this.nome_completo = [];
+              this.EditUser = {
+                ...user,
+              };
+              this.editUserD = true;
+            },
+
+            salvarEdit(user) {
+              let atualUser = this.users.findIndex(
+                (editUser) => editUser.id == user.id
+              );
+              this.array_nome_completo = user.name.split(" ");
+              this.nome_completo = this.array_nome_completo.filter(String);
+              this.$v.$touch();
+
+              this.first_name = this.nome_completo[0];
+              this.last_name = this.nome_completo[1];
+
+              if (this.first_name && this.last_name) {
+                if (this.first_name.length <= 2 || this.last_name.length <= 2) {
+                  this.msgName = true;
+                  return;
+                }
+                if (!this.$v.EditUser.$error) {
+                  this.users[atualUser].name = user.name;
+                  this.users[atualUser].id = user.id;
+                  this.users[atualUser].numero_telefone = user.numero_telefone;
+                  this.editUserD = false;
+                  Swal.fire({
+                    title: "Editado!",
+                    text: "Contato Editado com sucesso!",
+                    icon: "success",
+                  });
+                  this.cancelar();
+                }
+              }
+              this.setColor();
+              this.setItemLocalStorage();
+            },
+
             cancelar() {
               this.msgName = false;
               this.addNewUser = false;
