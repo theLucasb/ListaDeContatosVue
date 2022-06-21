@@ -1,13 +1,13 @@
 <!DOCTYPE html>
+
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui"
-    />
+    <meta name="viewport" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900"
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100&display=swap"
       rel="stylesheet"
     />
     <link
@@ -19,13 +19,19 @@
       rel="stylesheet"
     />
     <title>Lista de Contatos</title>
-    <style></style>
+    <style>
+      .navbar-title {
+        font-weight: bold;
+        font-size: 25px;
+      }
+    </style>
   </head>
   <body>
     <div id="app">
       <v-app>
         <v-app-bar app dense>
-          <span>Lista de Contatos</span>
+          <v-spacer></v-spacer>
+          <span class="navbar-title">Lista de Contatos</span>
           <v-spacer></v-spacer>
         </v-app-bar>
 
@@ -48,8 +54,11 @@
             >
               <template v-slot:[`item.actions`]="{ item }">
                 <div :style="item.color">
-                  <v-icon class="mr-2" color="orange" @click="editUser(item)"
-                    >mdi-pencil</v-icon
+                  <v-icon class="mr-2" color="black" @click="editUser(item)"
+                    >mdi-account-edit-outline</v-icon
+                  >
+                  <v-icon color="black" @click="deleteUser(item)"
+                    >mdi-trash-can-outline</v-icon
                   >
                 </div>
               </template>
@@ -68,19 +77,19 @@
                     v-on="on"
                     class="btn-primary"
                   >
-                    Adicionar Novo Contato +
+                    Adicionar +
                   </v-btn>
                 </template>
                 <v-card>
                   <v-card-title
                     class="d-flex justify-content-center align-center"
                   >
-                    <span class="text-center">Informações do contato</span>
+                    <span class="text-center">Adicionar contato</span>
                   </v-card-title>
                   <v-card-text>
                     <v-container>
                       <v-row>
-                        <v-col cols="12" sm="12" md="8">
+                        <v-col cols="12" sm="12" md="12">
                           <v-text-field
                             label="Informe o Nome Completo"
                             required
@@ -109,7 +118,7 @@
                             letras *
                           </p>
                         </v-col>
-                        <v-col cols="12" sm="12" md="8">
+                        <v-col cols="12" sm="12" md="12">
                           <v-text-field
                             label="Informe o Número de telefone"
                             v-model="user.numero_telefone"
@@ -122,14 +131,14 @@
                             class="red--text"
                             v-if="$v.user.numero_telefone.$error && !$v.user.numero_telefone.required "
                           >
-                            Esse campo é obrigatório *
+                            Campo obrigatório. Por favor preencha.*
                           </p>
 
                           <p
                             class="red--text"
                             v-if="$v.user.numero_telefone.required && !$v.user.numero_telefone.minLength"
                           >
-                            Por favor digite um número válido *
+                            Por favor, digite um número que seja válido *
                           </p>
                         </v-col>
                       </v-row>
@@ -137,7 +146,7 @@
                   </v-card-text>
                   <v-card-actions>
                     <v-btn color="red darken-1" text @click="cancelar()">
-                      cancelar
+                      Cancelar
                     </v-btn>
                     <v-spacer></v-spacer>
                     <v-btn color="blue darken-1" text @click="salvar()">
@@ -151,21 +160,21 @@
             <v-dialog
               v-model="editUserD"
               persistent
-              max-width="600px"
+              max-width="500px"
               :retain-focus="false"
             >
               <v-card>
                 <v-card-title
                   class="d-flex justify-content-center align-center"
                 >
-                  <span class="text-center">Edição de contato</span>
+                  <span class="text-center">Editar contato</span>
                 </v-card-title>
                 <v-card-text>
                   <v-container>
                     <v-row>
-                      <v-col cols="12" sm="12" md="8">
+                      <v-col cols="12" sm="12" md="12">
                         <v-text-field
-                          label="Nome completo"
+                          label="Informe o Nome Completo"
                           required
                           v-model.trim="EditUser.name"
                         >
@@ -185,9 +194,9 @@
                           Nome e Sobrenome devem possuir 3 letras *
                         </p>
                       </v-col>
-                      <v-col cols="12" sm="12 " md="4">
+                      <v-col cols="12" sm="12 " md="12">
                         <v-text-field
-                          label="Número de telefone"
+                          label="Informe o Número de telefone"
                           v-model="EditUser.numero_telefone"
                           v-mask="'(##)# ####-####'"
                         >
@@ -210,10 +219,10 @@
                   </v-container>
                 </v-card-text>
                 <v-card-actions>
-                  <v-spacer></v-spacer>
-                  <v-btn color="blue darken-1" text @click="cancelar()">
+                  <v-btn color="red darken-1" text @click="cancelar()">
                     Cancelar
                   </v-btn>
+                  <v-spacer></v-spacer>
                   <v-btn
                     color="blue darken-1"
                     text
@@ -248,6 +257,7 @@
               msgName: false,
               EditUser: {},
               editUserD: false,
+              DeleteUser: false,
 
               headers: [
                 { text: "Nome", align: "start", sortable: true, value: "name" },
@@ -256,7 +266,7 @@
                   value: "numero_telefone",
                   sortable: false,
                 },
-                { text: "", value: "actions", sortable: false },
+                { text: "Ações", value: "actions", sortable: false },
               ],
             };
           },
@@ -289,10 +299,10 @@
                 let length = this.users.length - 1;
                 idNewUser = this.users[length].id + 1;
               }
-              this.$v.$touch(); //validação dos campos
+              this.$v.$touch();
               if (!this.$v.user.$error) {
                 this.array_nome_completo = this.user.name.split(" ");
-                this.nome_completo = this.array_nome_completo.filter(String); //tratando os espaços em branco entre os nomes
+                this.nome_completo = this.array_nome_completo.filter(String);
                 if (this.nome_completo.length != 1) {
                   this.primeiro_nome = this.nome_completo[0];
                   this.ultimo_nome = this.nome_completo[1];
@@ -323,7 +333,7 @@
               user.name = user.name
                 .split(" ")
                 .filter((partOfName) => partOfName != "")
-                .join(" "); //remover espacos em branco entre os nomes
+                .join(" ");
               this.nome_completo = [];
               this.EditUser = {
                 ...user,
@@ -363,10 +373,35 @@
               this.setColor();
               this.setItemLocalStorage();
             },
-
+            deleteUser(userDelete) {
+              Swal.fire({
+                title: "Excluir",
+                icon: "error",
+                text: `Tem certeza que deseja excluir o contato ${userDelete.name}?`,
+                showCancelButton: true,
+                confirmButtonColor: "green",
+                cancelButtonColor: "red",
+                confirmButtonText: "SIM",
+                cancelButtonText: "NÃO",
+              }).then((result) => {
+                if (result.value) {
+                  this.users = this.users.filter(
+                    (user) => user.id != userDelete.id
+                  );
+                  Swal.fire({
+                    title: "Excluído!",
+                    text: "Contato Excluído com sucesso!",
+                    icon: "success",
+                  });
+                }
+                this.DeleteUser = true;
+                this.setItemLocalStorage();
+              });
+            },
             cancelar() {
               this.msgName = false;
               this.addNewUser = false;
+              this.editUserD = false;
               this.$v.$reset();
               this.user = {};
             },
@@ -374,18 +409,18 @@
               this.users.map((user) => {
                 const DDD = String(user.numero_telefone).substr(1, 2);
                 return DDD == 11
-                  ? (user.color = "light-blue")
+                  ? (user.color = "blue")
                   : (user.color = "white");
               });
             },
             setItemLocalStorage() {
               return localStorage.setItem(
-                "Usuarios",
+                "Usuarios Cadastrados",
                 JSON.stringify(this.users)
               );
             },
             getItemLocalStorage() {
-              return JSON.parse(localStorage.getItem("Usuarios"));
+              return JSON.parse(localStorage.getItem("Usuarios Cadastrados"));
             },
           },
           created: function () {
